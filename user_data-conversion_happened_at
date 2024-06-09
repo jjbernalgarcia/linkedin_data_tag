@@ -1,0 +1,56 @@
+<script>
+  (function() {
+    // Function to hash the email address
+    function sha256(email) {
+      console.log('Hashing email:', email);
+      var encoder = new TextEncoder();
+      var data = encoder.encode(email);
+      return crypto.subtle.digest('SHA-256', data).then(function(hash) {
+        var hashedEmail = Array.from(new Uint8Array(hash))
+          .map(function(b) { return b.toString(16).padStart(2, '0'); })
+          .join('');
+        console.log('Hashed email:', hashedEmail);
+        return hashedEmail;
+      });
+    }
+
+    // Function to set a cookie that expires at the end of the session
+    function setSessionCookie(name, value) {
+      document.cookie = name + "=" + (value || "") + "; path=/";
+      console.log('Session cookie set:', name, value);
+    }
+
+    // Get email value from the data layer variable
+    var email = {{DLV - Email}};
+    console.log('Email from data layer:', email);
+
+    // Get current UTC time in milliseconds (epoch time)
+    var currentTimeInMilliseconds = Date.now() - 1000; // Adjust by 1 second to avoid future time issues
+    console.log('Adjusted current time in milliseconds:', currentTimeInMilliseconds);
+
+    // Get Linkedin Conversion Event value
+    var linkedinConversionEvent = "Li_Lead_Form_Submit";
+    console.log('Linkedin Conversion Event:', linkedinConversionEvent);
+
+    // Hash the email and push to data layer
+    sha256(email).then(function(hashedValue) {
+      console.log('Pushing to data layer');
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: linkedinConversionEvent,
+        user_data: {
+          email: email,
+          sha256_email_address: hashedValue
+        },
+        conversion_happened_at: currentTimeInMilliseconds
+      });
+      console.log('Data layer push complete');
+
+      // Set session cookies for email and sha256_email_address
+      setSessionCookie('email', email);
+      setSessionCookie('sha256_email_address', hashedValue);
+    }).catch(function(error) {
+      console.error('Error hashing email:', error);
+    });
+  })();
+</script>
